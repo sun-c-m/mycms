@@ -1,0 +1,90 @@
+name: Deploy CMS
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build backend
+        working-directory: mycms
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -Dmaven.test.skip=true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mycms-vue/package-lock.json
+
+      - name: Build admin frontend
+        working-directory: mycms-vue
+        env:
+          VITE_API_BASE_URL: /api
+        run: |
+          npm ci
+          npm run build-only
+
+      - name: Upload backend jar
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "mycms/target/*.jar"
+          target: "/opt/cms/deploy"
+
+      - name: Upload admin frontend
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "mycms-vue/dist/*"
+          target: "/opt/cms/deploy"
+
+      - name: Upload college placeholder
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "college-placeholder/*"
+          target: "/opt/cms/deploy"
+
+      - name: Deploy and restart services
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p /opt/cms/backend /opt/cms/admin/dist /opt/cms/college/dist
+            cp /opt/cms/deploy/mycms/target/*.jar /opt/cms/backend/mycms.jar
+            rm -rf /opt/cms/admin/dist/*
+            cp -r /opt/cms/deploy/mycms-vue/dist/* /opt/cms/admin/dist/
+            rm -rf /opt/cms/college/dist/*
+            cp -r /opt/cms/deploy/college-placeholder/* /opt/cms/college/dist/
+            systemctl restart cms-backend
+            systemctl reload nginx
