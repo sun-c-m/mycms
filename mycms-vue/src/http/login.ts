@@ -1,9 +1,9 @@
 import axios from "@/http/axios.ts";
 
-export const getUser=((username:String,password:String)=>{
+export const getUser = (username: string, password: string) => {
     return axios({
-        url:'/api/login/getUser',
+        url: '/login/getUser',
         method: "POST",
         data: {username,password}
     })
-})
+}

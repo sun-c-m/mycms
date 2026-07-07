@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import {getUser} from "@/http/login.ts";
 
@@ -35,13 +35,27 @@ const router = useRouter()
 // 表单数据
 const form = reactive({
   username: 'sun',
-  password: '7842509'
+  password: '784250'
 })
 const handleLogin = async () => {
-  const result=await getUser(form.username, form.password);
-  if(result.code==200){
-    console.log(result);
-  router.push('/menu')}
+  console.log('点击了登录按钮')
+
+  try {
+    const result = await getUser(form.username, form.password);
+    console.log('后端返回结果：', result);
+    if (result.code === 200) {
+      console.log(result);
+      if (result.data?.menuTree) {
+        sessionStorage.setItem('menuTree', JSON.stringify(result.data.menuTree));
+      }
+
+      await router.push('/menu');
+    } else {
+      console.warn('登录失败：', result);
+    }
+  } catch (error) {
+    console.error('登录请求失败', error);
+  }
 }
 </script>
 
