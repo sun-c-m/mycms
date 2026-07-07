@@ -39,7 +39,6 @@ const form = reactive({
 })
 const handleLogin = async () => {
   console.log('点击了登录按钮')
-
   try {
     const result = await getUser(form.username, form.password);
     console.log('后端返回结果：', result);
