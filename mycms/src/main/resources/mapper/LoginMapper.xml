@@ -9,7 +9,7 @@
         <collection property="permissionList" ofType="cn.edu.guet.mycms.entity.Permission">
             <id property="id" column="perm_id" />
             <result property="name" column="perm_name" />
-            <result property="menuType" column="perm_type"/>
+            <result property="menuType" column="perm_type" />
             <result property="code" column="perm_code" />
             <result property="path" column="perm_path" />
             <result property="parentId" column="parent_id" />

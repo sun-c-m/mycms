@@ -15,3 +15,4 @@ public enum MenuType {
         return value;
     }
 }
+

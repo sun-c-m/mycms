@@ -6,7 +6,8 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/admin/',
+  base: process.env.VITE_BASE_PATH || '/',
+  build: { outDir: process.env.VITE_OUT_DIR || 'dist' },
   plugins: [
     vue(),
     vueDevTools(),

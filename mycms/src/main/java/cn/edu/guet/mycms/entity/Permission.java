@@ -25,3 +25,4 @@ public class Permission {
     private Integer sort;
     private LocalDateTime createTime;
 }
+

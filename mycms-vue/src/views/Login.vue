@@ -21,15 +21,16 @@
               placeholder="请输入密码"
           />
         </div>
-        <button class="login-btn" @click=handleLogin>登录</button>
+        <button class="login-btn" :disabled="loading" @click="handleLogin">{{ loading ? '登录中...' : '登录' }}</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {getUser} from "@/http/login.ts";
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 // 表单数据
@@ -37,24 +38,27 @@ const form = reactive({
   username: 'sun',
   password: '784250'
 })
+const loading = ref(false)
 const handleLogin = async () => {
-  console.log('点击了登录按钮')
+  if (!form.username || !form.password) return ElMessage.warning('请输入用户名和密码')
+  loading.value = true
   try {
-    const result = await getUser(form.username, form.password);
+        const result: any = await getUser(form.username, form.password);
     console.log('后端返回结果：', result);
     if (result.code === 200) {
       console.log(result);
       if (result.data?.menuTree) {
         sessionStorage.setItem('menuTree', JSON.stringify(result.data.menuTree));
       }
+      sessionStorage.setItem('user', JSON.stringify(result.data || { username: form.username }))
 
       await router.push('/menu');
     } else {
-      console.warn('登录失败：', result);
+      ElMessage.error(result.message || '登录失败');
     }
   } catch (error) {
-    console.error('登录请求失败', error);
-  }
+    ElMessage.error('无法连接服务器，请稍后重试')
+  } finally { loading.value = false }
 }
 </script>
 

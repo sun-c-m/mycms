@@ -57,3 +57,4 @@ public class Result<T> {
         this.data = data;
     }
 }
+

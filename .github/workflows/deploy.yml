@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -33,13 +34,23 @@ jobs:
           cache: npm
           cache-dependency-path: mycms-vue/package-lock.json
 
-      - name: Build admin frontend
+      - name: Prepare server directories
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: mkdir -p /opt/cms/deploy/mycms/target /opt/cms/deploy/mycms-vue/dist-admin /opt/cms/deploy/mycms-vue/dist-site
+
+      - name: Build frontends
         working-directory: mycms-vue
         env:
           VITE_API_BASE_URL: /api
         run: |
           npm ci
-          npm run build-only
+          VITE_BASE_PATH=/admin/ VITE_OUT_DIR=dist-admin npm run build-only
+          VITE_BASE_PATH=/ VITE_OUT_DIR=dist-site npm run build-only
 
       - name: Upload backend jar
         uses: appleboy/scp-action@v0.1.7
@@ -49,7 +60,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "mycms/target/*.jar"
-          target: "/opt/cms/deploy"
+          target: "/opt/cms/deploy/mycms/target"
 
       - name: Upload admin frontend
         uses: appleboy/scp-action@v0.1.7
@@ -58,18 +69,18 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "mycms-vue/dist/*"
-          target: "/opt/cms/deploy"
+          source: "mycms-vue/dist-admin/*"
+          target: "/opt/cms/deploy/mycms-vue/dist-admin"
 
-      - name: Upload college placeholder
+      - name: Upload public portal
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "college-placeholder/*"
-          target: "/opt/cms/deploy"
+          source: "mycms-vue/dist-site/*"
+          target: "/opt/cms/deploy/mycms-vue/dist-site"
 
       - name: Deploy and restart services
         uses: appleboy/ssh-action@v1.0.3
@@ -83,8 +94,8 @@ jobs:
             mkdir -p /opt/cms/backend /opt/cms/admin/dist /opt/cms/college/dist
             cp /opt/cms/deploy/mycms/target/*.jar /opt/cms/backend/mycms.jar
             rm -rf /opt/cms/admin/dist/*
-            cp -r /opt/cms/deploy/mycms-vue/dist/* /opt/cms/admin/dist/
+            cp -r /opt/cms/deploy/mycms-vue/dist-admin/* /opt/cms/admin/dist/
             rm -rf /opt/cms/college/dist/*
-            cp -r /opt/cms/deploy/college-placeholder/* /opt/cms/college/dist/
+            cp -r /opt/cms/deploy/mycms-vue/dist-site/* /opt/cms/college/dist/
             systemctl restart cms-backend
             systemctl reload nginx
