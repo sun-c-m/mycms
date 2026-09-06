@@ -41,12 +41,13 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: mkdir -p /opt/cms/deploy/mycms/target /opt/cms/deploy/mycms-vue/dist-admin /opt/cms/deploy/mycms-vue/dist-site
+          script: |
+            set -e
+            rm -rf /opt/cms/deploy/mycms /opt/cms/deploy/mycms-vue
+            mkdir -p /opt/cms/deploy/mycms/target /opt/cms/deploy/mycms-vue/dist-admin /opt/cms/deploy/mycms-vue/dist-site
 
       - name: Build frontends
         working-directory: mycms-vue
-        env:
-          VITE_API_BASE_URL: /api
         run: |
           npm ci
           VITE_BASE_PATH=/admin/ VITE_OUT_DIR=dist-admin npm run build-only
@@ -93,9 +94,17 @@ jobs:
             set -e
             mkdir -p /opt/cms/backend /opt/cms/admin/dist /opt/cms/college/dist
             cp /opt/cms/deploy/mycms/target/*.jar /opt/cms/backend/mycms.jar
+            admin_index="$(find /opt/cms/deploy/mycms-vue -type f -path '*/dist-admin/index.html' -print -quit)"
+            site_index="$(find /opt/cms/deploy/mycms-vue -type f -path '*/dist-site/index.html' -print -quit)"
+            test -n "$admin_index" || { echo 'admin frontend index.html not found'; exit 1; }
+            test -n "$site_index" || { echo 'public frontend index.html not found'; exit 1; }
+            admin_build="$(dirname "$admin_index")"
+            site_build="$(dirname "$site_index")"
             rm -rf /opt/cms/admin/dist/*
-            cp -r /opt/cms/deploy/mycms-vue/dist-admin/* /opt/cms/admin/dist/
+            cp -a "$admin_build"/. /opt/cms/admin/dist/
             rm -rf /opt/cms/college/dist/*
-            cp -r /opt/cms/deploy/mycms-vue/dist-site/* /opt/cms/college/dist/
+            cp -a "$site_build"/. /opt/cms/college/dist/
+            test -f /opt/cms/admin/dist/index.html
+            test -f /opt/cms/college/dist/index.html
             systemctl restart cms-backend
             systemctl reload nginx

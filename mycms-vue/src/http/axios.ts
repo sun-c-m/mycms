@@ -2,8 +2,17 @@ import axios from "axios";
 import {useUserStore} from "@/stores/user.ts";
 import {ElMessage} from "element-plus";
 
+// All API modules use paths beginning with `/api`.  Treat the optional
+// environment value as the server origin, not as another `/api` prefix.
+const configuredBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+const baseURL = configuredBaseUrl === '/api'
+    ? ''
+    : configuredBaseUrl.endsWith('/api')
+        ? configuredBaseUrl.slice(0, -4)
+        : configuredBaseUrl;
+
 const instance = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL,
+    baseURL,
     timeout: 5000, // 1000ms 有点短，容易超时
 });
 

@@ -21,6 +21,8 @@ DB_PASSWORD=请替换为强密码
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 NEWS_UPLOAD_DIR=/opt/cms/uploads
+# 当前服务器使用 9002；如改端口，Nginx proxy_pass 也要同步修改
+SERVER_PORT=9002
 ```
 
 创建 `/etc/systemd/system/cms-backend.service`：
@@ -48,7 +50,7 @@ server {
     server_name example.com;
     root /opt/cms/college/dist;
     index index.html;
-    location /api/ { proxy_pass http://127.0.0.1:8081; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
+    location /api/ { proxy_pass http://127.0.0.1:9002; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; }
     location /admin/ { alias /opt/cms/admin/dist/; try_files $uri $uri/ /admin/index.html; }
     location / { try_files $uri $uri/ /index.html; }
 }
@@ -88,5 +90,7 @@ Actions 完成后访问：
 
 - 门户：`https://example.com/`
 - 后台：`https://example.com/admin/`
+
+前端生产构建不需要设置 `VITE_API_BASE_URL=/api`。项目接口模块本身已经使用 `/api/...` 路径，部署脚本会让浏览器通过 Nginx 的 `/api/` 反向代理访问后端，避免生成 `/api/api/...`。
 
 生产环境还应配置 HTTPS（例如 Certbot），并限制数据库、Redis 和上传目录的网络访问。GitHub 官方文档：[Secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions)、[Environments](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment)。
