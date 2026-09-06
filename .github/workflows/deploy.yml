@@ -110,14 +110,18 @@ jobs:
             test -f /opt/cms/college/dist/index.html
             systemctl restart cms-backend
             backend_ready=false
+            backend_url=''
             for attempt in $(seq 1 30); do
-              if curl --fail --silent \
-                --header 'Content-Type: application/json' \
-                --data '{"currentPage":1,"pageSize":1,"params":[]}' \
-                http://127.0.0.1:9002/api/news/public/page >/dev/null; then
-                backend_ready=true
-                break
-              fi
+              for port in 9002 8081; do
+                if curl --fail --silent \
+                  --header 'Content-Type: application/json' \
+                  --data '{"currentPage":1,"pageSize":1,"params":[]}' \
+                  "http://127.0.0.1:${port}/api/news/public/page" >/dev/null; then
+                  backend_ready=true
+                  backend_url="http://127.0.0.1:${port}"
+                  break 2
+                fi
+              done
               sleep 2
             done
             if [ "$backend_ready" != true ]; then
@@ -126,5 +130,5 @@ jobs:
               journalctl -u cms-backend -n 100 --no-pager -l || true
               exit 1
             fi
-            echo 'Backend health check passed at http://127.0.0.1:9002'
+            echo "Backend health check passed at ${backend_url}"
             systemctl reload nginx
