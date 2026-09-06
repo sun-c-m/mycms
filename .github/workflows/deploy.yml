@@ -93,7 +93,9 @@ jobs:
           script: |
             set -e
             mkdir -p /opt/cms/backend /opt/cms/admin/dist /opt/cms/college/dist
-            cp /opt/cms/deploy/mycms/target/*.jar /opt/cms/backend/mycms.jar
+            jar_file="$(find /opt/cms/deploy/mycms -type f -name '*.jar' -print -quit)"
+            test -n "$jar_file" || { echo 'backend jar not found'; exit 1; }
+            cp "$jar_file" /opt/cms/backend/mycms.jar
             admin_index="$(find /opt/cms/deploy/mycms-vue -type f -path '*/dist-admin/index.html' -print -quit)"
             site_index="$(find /opt/cms/deploy/mycms-vue -type f -path '*/dist-site/index.html' -print -quit)"
             test -n "$admin_index" || { echo 'admin frontend index.html not found'; exit 1; }

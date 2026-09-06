@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>cn.edu.guet</groupId>
-	<artifactId>cms3</artifactId>
+	<artifactId>mycms</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>cms3</name>
-	<description>cms3</description>
+	<name>mycms</name>
+	<description>My CMS backend</description>
 	<url/>
 	<licenses>
 		<license/>
