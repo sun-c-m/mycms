@@ -109,4 +109,20 @@ jobs:
             test -f /opt/cms/admin/dist/index.html
             test -f /opt/cms/college/dist/index.html
             systemctl restart cms-backend
+            backend_ready=false
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error \
+                --header 'Content-Type: application/json' \
+                --data '{"currentPage":1,"pageSize":1,"params":[]}' \
+                http://127.0.0.1:9002/api/news/public/page >/dev/null; then
+                backend_ready=true
+                break
+              fi
+              sleep 2
+            done
+            if [ "$backend_ready" != true ]; then
+              systemctl status cms-backend --no-pager -l || true
+              journalctl -u cms-backend -n 100 --no-pager -l || true
+              exit 1
+            fi
             systemctl reload nginx
