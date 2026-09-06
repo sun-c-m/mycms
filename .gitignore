@@ -2,4 +2,4 @@
 .agents/
 .codex/
 *.log
-
+.DS_Store

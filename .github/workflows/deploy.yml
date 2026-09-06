@@ -111,7 +111,7 @@ jobs:
             systemctl restart cms-backend
             backend_ready=false
             for attempt in $(seq 1 30); do
-              if curl --fail --silent --show-error \
+              if curl --fail --silent \
                 --header 'Content-Type: application/json' \
                 --data '{"currentPage":1,"pageSize":1,"params":[]}' \
                 http://127.0.0.1:9002/api/news/public/page >/dev/null; then
@@ -122,7 +122,9 @@ jobs:
             done
             if [ "$backend_ready" != true ]; then
               systemctl status cms-backend --no-pager -l || true
+              systemctl show cms-backend -p ExecStart -p EnvironmentFiles || true
               journalctl -u cms-backend -n 100 --no-pager -l || true
               exit 1
             fi
+            echo 'Backend health check passed at http://127.0.0.1:9002'
             systemctl reload nginx
